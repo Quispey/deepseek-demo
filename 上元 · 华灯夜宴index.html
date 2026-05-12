@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>《上元》· 灵境AI | DeepSeek智能对话 + 国风沉浸式视频</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0a0e1a 0%, #0b1120 100%);
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
+            min-height: 100vh;
+            padding: 1.5rem;
+        }
+
+        /* 主容器 */
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.8rem;
+        }
+
+        /* API 模态浮层 — 核心验证区 */
+        .api-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(5, 8, 18, 0.94);
+            backdrop-filter: blur(14px);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+        }
+
+        .api-card {
+            background: rgba(20, 27, 45, 0.96);
+            border-radius: 2rem;
+            width: 90%;
+            max-width: 520px;
+            padding: 2rem 1.8rem;
+            border: 1px solid rgba(80, 130, 220, 0.6);
+            box-shadow: 0 25px 45px rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            transition: 0.2s;
+            text-align: center;
+        }
+
+        .api-card h2 {
+            font-size: 1.8rem;
+            background: linear-gradient(120deg, #f0eef7, #b1d0ff);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .api-card p {
+            color: #9aaed3;
+            font-size: 0.85rem;
+            margin-bottom: 1.2rem;
+        }
+
+        .privacy-notice {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 1rem;
+            padding: 0.8rem;
+            margin-bottom: 1.5rem;
+            text-align: left;
+            font-size: 0.7rem;
+            border-left: 3px solid #3b82f6;
+            color: #b9d0f0;
+        }
+
+        .privacy-notice strong {
+            color: #ffdfb8;
+        }
+
+        .api-input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+            margin-bottom: 1.2rem;
+        }
+
+        .api-input-group input {
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid #2c3f66;
+            padding: 0.9rem 1.2rem;
+            border-radius: 60px;
+            color: white;
+            font-size: 0.9rem;
+            outline: none;
+            transition: 0.2s;
+            font-family: monospace;
+        }
+
+        .api-input-group input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59,130,246,0.3);
+        }
+
+        .api-btn {
+            background: linear-gradient(95deg, #1e2f4b, #13223b);
+            border: none;
+            padding: 0.8rem 1.2rem;
+            border-radius: 60px;
+            font-weight: 600;
+            font-size: 1rem;
+            color: #eaf4ff;
+            cursor: pointer;
+            transition: 0.2s;
+            width: 100%;
+            margin-top: 0.3rem;
+        }
+
+        .api-btn:hover {
+            background: #2d4780;
+            box-shadow: 0 5px 12px rgba(0, 90, 210, 0.3);
+            transform: scale(0.98);
+        }
+
+        .error-msg {
+            color: #ffae9e;
+            font-size: 0.75rem;
+            margin-top: 0.5rem;
+        }
+
+        /* 主界面（初始隐藏） */
+        .main-interface {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(12px);}
+            to { opacity: 1; transform: translateY(0);}
+        }
+
+        /* 视频卡片区域 */
+        .biliair-card {
+            background: rgba(18, 24, 38, 0.75);
+            backdrop-filter: blur(8px);
+            border-radius: 2rem;
+            box-shadow: 0 25px 40px -15px rgba(0, 0, 0, 0.6);
+            overflow: hidden;
+            border: 1px solid rgba(100, 130, 220, 0.25);
+        }
+
+        .video-responsive {
+            position: relative;
+            width: 100%;
+            padding-bottom: 56.25%;
+            background-color: #03050a;
+        }
+
+        .video-responsive iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .info-panel {
+            padding: 1.4rem 1.8rem 1.2rem;
+            background: linear-gradient(0deg, rgba(10, 14, 24, 0.96), rgba(20, 26, 40, 0.92));
+            border-top: 1px solid rgba(100, 130, 220, 0.2);
+        }
+
+        .title-badge {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 1rem;
+            margin-bottom: 0.8rem;
+        }
+
+        h1 {
+            font-size: 1.7rem;
+            background: linear-gradient(120deg, #FEF9E6, #C0D4FF);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+
+        .badge-bili {
+            background: rgba(0, 161, 214, 0.2);
+            padding: 0.3rem 1rem;
+            border-radius: 60px;
+            font-size: 0.7rem;
+            color: #9fd9ff;
+            border: 0.5px solid rgba(0, 180, 230, 0.5);
+        }
+
+        /* AI 对话区域 — DeepSeek 智能面板 */
+        .ai-panel {
+            background: rgba(16, 22, 35, 0.85);
+            backdrop-filter: blur(12px);
+            border-radius: 1.8rem;
+            border: 1px solid rgba(70, 110, 180, 0.4);
+            overflow: hidden;
+            transition: all 0.2s;
+        }
+
+        .ai-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            background: rgba(0, 0, 0, 0.4);
+            border-bottom: 1px solid #2a3650;
+        }
+
+        .ai-header h3 {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            color: #c7e2ff;
+            font-weight: 500;
+        }
+
+        .api-status {
+            font-size: 0.7rem;
+            background: #1b2a44;
+            padding: 0.2rem 0.8rem;
+            border-radius: 20px;
+            color: #90e0ff;
+        }
+
+        .chat-messages {
+            height: 280px;
+            overflow-y: auto;
+            padding: 1rem 1.2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.9rem;
+            background: rgba(5, 8, 18, 0.5);
+        }
+
+        .message {
+            display: flex;
+            flex-direction: column;
+            max-width: 85%;
+        }
+
+        .user-message {
+            align-self: flex-end;
+        }
+
+        .assistant-message {
+            align-self: flex-start;
+        }
+
+        .msg-bubble {
+            padding: 0.65rem 1rem;
+            border-radius: 1.2rem;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            word-break: break-word;
+        }
+
+        .user-message .msg-bubble {
+            background: #2c3f68;
+            color: white;
+            border-bottom-right-radius: 0.2rem;
+        }
+
+        .assistant-message .msg-bubble {
+            background: rgba(30, 40, 60, 0.9);
+            border: 0.5px solid #5b7bbc;
+            color: #eef4ff;
+            border-bottom-left-radius: 0.2rem;
+        }
+
+        .msg-time {
+            font-size: 0.6rem;
+            margin-top: 4px;
+            color: #7a8bb0;
+            padding-left: 8px;
+        }
+
+        .input-area {
+            display: flex;
+            gap: 0.6rem;
+            padding: 1rem 1.2rem 1.3rem;
+            background: rgba(0, 0, 0, 0.3);
+            border-top: 1px solid #252f48;
+        }
+
+        .input-area input {
+            flex: 1;
+            background: #0e131f;
+            border: 1px solid #2c3a60;
+            padding: 0.75rem 1rem;
+            border-radius: 48px;
+            color: white;
+            font-size: 0.85rem;
+            outline: none;
+        }
+
+        .input-area input:focus {
+            border-color: #3b82f6;
+        }
+
+        .input-area button {
+            background: #1e3b6b;
+            border: none;
+            padding: 0 1.2rem;
+            border-radius: 48px;
+            color: white;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .input-area button:hover:not(:disabled) {
+            background: #2f5a92;
+            transform: scale(0.96);
+        }
+
+        .input-area button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .typing-indicator {
+            color: #9bb5e0;
+            font-size: 0.75rem;
+            padding: 4px 12px;
+        }
+
+        .footer-note {
+            font-size: 0.65rem;
+            text-align: center;
+            color: #5f729b;
+            margin-top: 1rem;
+        }
+
+        /* 项目说明面板（可折叠） */
+        .project-disclosure {
+            margin-top: 1rem;
+            background: rgba(8, 12, 22, 0.7);
+            border-radius: 1.2rem;
+            backdrop-filter: blur(4px);
+            border: 0.5px solid #2e3a55;
+            overflow: hidden;
+        }
+
+        .disclosure-header {
+            padding: 0.7rem 1.2rem;
+            background: rgba(0, 0, 0, 0.4);
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #b9d0ff;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: 0.1s;
+            user-select: none;
+        }
+
+        .disclosure-header:hover {
+            background: #1f2a44;
+        }
+
+        .disclosure-content {
+            padding: 0.9rem 1.2rem;
+            font-size: 0.7rem;
+            color: #b8c7ec;
+            border-top: 1px solid #283048;
+            line-height: 1.5;
+            display: none;
+        }
+
+        .disclosure-content.open {
+            display: block;
+        }
+
+        .disclosure-content strong {
+            color: #ffe0b5;
+        }
+
+        .disclosure-content a {
+            color: #8bb5ff;
+        }
+
+        @media (max-width: 720px) {
+            body {
+                padding: 0.8rem;
+            }
+            .info-panel {
+                padding: 1rem;
+            }
+            h1 {
+                font-size: 1.3rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <!-- API 模态验证层 -->
+    <div id="apiModal" class="api-modal">
+        <div class="api-card">
+            <h2>✨ DeepSeek 灵境接入</h2>
+            <p>请提供有效的 DeepSeek API Key 以开启「上元」AI 智慧对话 · 沉浸国风体验</p>
+            
+            <!-- 隐私与用途明确说明 (符合第2、3点要求) -->
+            <div class="privacy-notice">
+                <strong>📜 API Key 隐私与使用声明</strong><br>
+                1️⃣ 您输入的 API Key 仅用于本次会话中调用 DeepSeek 官方 API 实现 AI 对话功能。<br>
+                2️⃣ 本作品<strong>绝不收集、存储、上传或转发</strong>您的 API Key 至任何第三方服务器。密钥仅暂存在当前浏览器内存中，页面关闭后自动销毁。<br>
+                3️⃣ 所有 API 请求均直接与 DeepSeek 官方端点 (<code>api.deepseek.com</code>) 通信，不经过任何中介。<br>
+                4️⃣ 验证过程仅测试密钥有效性，不会记录您的密钥内容。使用即表示您理解并同意上述条款。
+            </div>
+
+            <div class="api-input-group">
+                <input type="password" id="apiKeyInput" placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxx" autocomplete="off">
+                <button id="validateKeyBtn" class="api-btn">🔑 验证并进入 · 灵境之旅</button>
+            </div>
+            <div id="apiErrorMsg" class="error-msg"></div>
+            <div class="footer-note" style="margin-top: 8px;">🔐 密钥仅存于当前标签页会话，绝不外传。</div>
+        </div>
+    </div>
+
+    <!-- 主界面（通过 Key 验证后显示） -->
+    <div id="mainInterface" class="main-interface">
+        <!-- 视频卡片区域 -->
+        <div class="biliair-card">
+            <div class="video-responsive">
+                <iframe 
+                    src="https://player.bilibili.com/player.html?bvid=BV1s4dGBUESP&page=1&high_quality=1&autoplay=0&allowfullscreen=true&as_wide=1"
+                    sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-popups-to-escape-sandbox allow-modals allow-downloads allow-presentation allow-top-navigation-by-user-activation allow-fullscreen"
+                    allowfullscreen
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                    title="哔哩哔哩播放器 - 《上元》"
+                    loading="lazy">
+                </iframe>
+                <div class="loading-tip" style="position: absolute; bottom: 12px; right: 16px; background: rgba(0,0,0,0.5); padding: 2px 8px; border-radius: 20px; font-size: 0.6rem; color:#bbb;">🎬 B站官方高清</div>
+            </div>
+            <div class="info-panel">
+                <div class="title-badge">
+                    <h1>🏮 上元 · 华灯夜宴</h1>
+                    <div class="badge-bili">DeepSeek AI 伴游 · 国风智境</div>
+                </div>
+                <div class="desc-text" style="color:#b7c3e5; font-size:0.85rem; display: flex; justify-content: space-between;">
+                    <span>✨ 「上元灯影，梦回千载」—— 东方美学短片，与AI对话探索画面背后的诗意。</span>
+                    <a href="https://www.bilibili.com/video/BV1s4dGBUESP" target="_blank" style="color:#bfd6ff; font-size:0.7rem;">原视频 ↗</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI 对话区：DeepSeek 智能面板 -->
+        <div class="ai-panel">
+            <div class="ai-header">
+                <h3>🧠 DeepSeek · 上元品鉴官 <span style="font-size:0.7rem;">(文化向导)</span></h3>
+                <div class="api-status" id="apiStatusBadge">✅ API 已就绪 · 本地会话</div>
+            </div>
+            <div class="chat-messages" id="chatMessages">
+                <div class="message assistant-message">
+                    <div class="msg-bubble">
+                        🌙 幸会。我是 DeepSeek，今夜与你共赏《上元》。这部短片融合花灯、明月与东方意象。你可以问我关于视频意境、创作背景或者任何国风美学的问题。
+                    </div>
+                    <div class="msg-time">此刻 · 灵犀一点</div>
+                </div>
+            </div>
+            <div class="input-area">
+                <input type="text" id="userQuestion" placeholder="问AI：比如「上元的创作灵感？」或者「解析视频色彩美学」……" autocomplete="off">
+                <button id="sendBtn">发送 ✨</button>
+            </div>
+            <div id="typingHint" class="typing-indicator" style="padding-left: 1.2rem; padding-bottom: 0.5rem;"></div>
+        </div>
+
+        <!-- 项目说明 + 隐私处理详细说明 (可展开核查) -->
+        <div class="project-disclosure">
+            <div class="disclosure-header" id="disclosureToggle">
+                <span>📄 项目说明 & API Key 使用隐私承诺 (可展开 / 可核查)</span>
+                <span>▼</span>
+            </div>
+            <div class="disclosure-content" id="disclosureContent">
+                <strong>🎋 《上元·灵境AI》合规说明</strong><br><br>
+                <strong>1. API Key 使用方式：</strong><br>
+                - 用户于启动弹窗手动输入 DeepSeek API Key，密钥仅保存在当前浏览器内存变量中。<br>
+                - 每次对话请求，网页直接调用 DeepSeek 官方 API (<a href="https://api.deepseek.com" target="_blank" style="color:#8bb5ff;">api.deepseek.com</a>) 携带该 Key 完成鉴权。<br>
+                - 作品未使用任何代理服务器或中间件，所有通信均为前端 → 官方 API。<br><br>
+                <strong>2. 隐私保护与数据隔离：</strong><br>
+                - ✅ 本作品<strong>不会以任何形式（localStorage、indexedDB、cookies、后端上报）存储、收集、上传、转发用户的 API Key</strong>。<br>
+                - ✅ 密钥仅在当前页面会话生命周期内暂时用于 API 请求，页面刷新或关闭后密钥立即丢失，必须重新输入。<br>
+                - ✅ 对话历史仅存储于浏览器内存中，未离开用户设备。项目无任何统计脚本或第三方追踪。<br><br>
+                <strong>3. 验证方式说明：</strong><br>
+                - 输入 Key 后，程序向 DeepSeek 发送最小化测试请求 (<code>max_tokens=20</code>)，仅检查凭证有效性，不记录任何密钥内容。<br>
+                - 验证成功后开放对话能力，不存储验证结果至任何持久化存储。<br><br>
+                <strong>4. 功能用途限定：</strong><br>
+                - API Key 仅用于调用 DeepSeek 聊天补全接口为用户提供有关《上元》视频的文化解读、美学问答和AI导览。<br>
+                - 不用于任何其他自动化行为、批量请求或无关商业用途。<br><br>
+                <strong>✅ 可核查原则：</strong> 本页面完全开源且逻辑透明，开发者无法获取您的密钥；可通过浏览器开发者工具 → 网络 (Network) 选项卡，查看所有请求仅发往 <code>api.deepseek.com</code> 且无额外转发。<br>
+                <span style="color:#bdd4ff;">🔍 最后更新：2026年 · 遵守数据最小化原则</span>
+            </div>
+        </div>
+
+        <div class="footer-note">
+            🎋 DeepSeek 生成式AI | 基于视频《上元》提供文化解读 | 每次对话调用API，密钥仅存于当前会话
+        </div>
+    </div>
+</div>
+
+<script>
+    // ---------- DeepSeek API 集成核心 ----------
+    // 严格遵循：不存储、不转发API Key，仅用于调用官方API。
+    let DEEPSEEK_API_KEY = null;          // 仅内存变量，绝不持久化
+    let isApiValid = false;
+    const API_BASE_URL = "https://api.deepseek.com/v1/chat/completions";
+
+    // DOM 元素
+    const apiModal = document.getElementById('apiModal');
+    const mainInterface = document.getElementById('mainInterface');
+    const apiKeyInput = document.getElementById('apiKeyInput');
+    const validateBtn = document.getElementById('validateKeyBtn');
+    const apiErrorMsg = document.getElementById('apiErrorMsg');
+    const sendBtn = document.getElementById('sendBtn');
+    const userQuestionInput = document.getElementById('userQuestion');
+    const chatMessagesDiv = document.getElementById('chatMessages');
+    const typingHint = document.getElementById('typingHint');
+    const disclosureToggle = document.getElementById('disclosureToggle');
+    const disclosureContent = document.getElementById('disclosureContent');
+
+    // 折叠/展开项目说明
+    if (disclosureToggle && disclosureContent) {
+        disclosureToggle.addEventListener('click', () => {
+            disclosureContent.classList.toggle('open');
+            disclosureToggle.querySelector('span:last-child').innerText = disclosureContent.classList.contains('open') ? '▲' : '▼';
+        });
+    }
+
+    // 辅助函数：显示API错误
+    function setApiError(msg) {
+        apiErrorMsg.innerText = msg;
+    }
+
+    function clearError() {
+        apiErrorMsg.innerText = '';
+    }
+
+    // 验证 DeepSeek API Key（轻量调用一次模型确认连通性，不存储验证痕迹）
+    async function validateDeepSeekKey(apiKey) {
+        try {
+            const response = await fetch(API_BASE_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    model: "deepseek-chat",
+                    messages: [
+                        { role: "system", content: "You are a helpful assistant." },
+                        { role: "user", content: "Reply with 'VALID_KEY_SUCCESS' only." }
+                    ],
+                    max_tokens: 20,
+                    temperature: 0.1
+                })
+            });
+            
+            if (!response.ok) {
+                let errorDetail = `HTTP ${response.status}`;
+                try {
+                    const errData = await response.json();
+                    errorDetail = errData.error?.message || errorDetail;
+                } catch(e) {}
+                throw new Error(`API验证失败: ${errorDetail}`);
+            }
+            const data = await response.json();
+            const content = data.choices?.[0]?.message?.content || "";
+            // 只要请求200通过即有效，确保key可用
+            if (response.status === 200) {
+                return true;
+            }
+            return content.includes("VALID_KEY_SUCCESS");
+        } catch (err) {
+            console.error("验证错误", err);
+            throw new Error(err.message || "无效的 API Key 或网络错误");
+        }
+    }
+
+    // 调用 DeepSeek 进行对话 (符合功能用途: 仅用于《上元》文化导览)
+    async function callDeepSeek(userMessage) {
+        if (!DEEPSEEK_API_KEY) throw new Error("API Key 未设置");
+        const systemPrompt = `你是《上元》国风视频的 AI 文化向导「灵境」。视频画面描绘上元灯节、古典美学、月夜花灯。回答需充满诗意、典雅且知识性，可以结合宋代美学、传统节日、视觉艺术等。保持中文回答，简洁有深度。如果用户询问视频具体技术细节，可基于常规分析。你无法控制视频播放，但可以解读意境、历史背景、艺术表达。保持友好。`;
+        
+        const response = await fetch(API_BASE_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
+            },
+            body: JSON.stringify({
+                model: "deepseek-chat",
+                messages: [
+                    { role: "system", content: systemPrompt },
+                    { role: "user", content: userMessage }
+                ],
+                temperature: 0.8,
+                max_tokens: 500,
+                stream: false
+            })
+        });
+        
+        if (!response.ok) {
+            let errMsg = `API 请求失败 ${response.status}`;
+            try {
+                const errJson = await response.json();
+                errMsg = errJson.error?.message || errMsg;
+            } catch(e) {}
+            throw new Error(errMsg);
+        }
+        const data = await response.json();
+        const reply = data.choices?.[0]?.message?.content;
+        if (!reply) throw new Error("模型返回内容为空");
+        return reply.trim();
+    }
+
+    // 显示消息到聊天框
+    function appendMessage(content, isUser = false) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${isUser ? 'user-message' : 'assistant-message'}`;
+        const bubble = document.createElement('div');
+        bubble.className = 'msg-bubble';
+        bubble.innerText = content;
+        const timeSpan = document.createElement('div');
+        timeSpan.className = 'msg-time';
+        const now = new Date();
+        timeSpan.innerText = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+        messageDiv.appendChild(bubble);
+        messageDiv.appendChild(timeSpan);
+        chatMessagesDiv.appendChild(messageDiv);
+        chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight;
+    }
+
+    let isWaitingResponse = false;
+    async function handleSendMessage() {
+        if (!isApiValid || !DEEPSEEK_API_KEY) {
+            appendMessage("⚠️ API状态异常，请刷新页面重新验证Key。", false);
+            return;
+        }
+        const question = userQuestionInput.value.trim();
+        if (!question) return;
+        if (isWaitingResponse) {
+            typingHint.innerText = "⏳ 请等待上个回复完成……";
+            return;
+        }
+        appendMessage(question, true);
+        userQuestionInput.value = '';
+        typingHint.innerText = "🌙 DeepSeek 正在思索上元意境...";
+        isWaitingResponse = true;
+        sendBtn.disabled = true;
+        
+        try {
+            const aiReply = await callDeepSeek(question);
+            appendMessage(aiReply, false);
+            typingHint.innerText = "";
+        } catch (err) {
+            console.error("DeepSeek调用错误:", err);
+            let errorMsg = "❌ 无法获取回答。";
+            if (err.message.includes("insufficient_quota") || err.message.includes("quota")) {
+                errorMsg = "⚠️ API 余额不足，请检查您的DeepSeek账户。";
+            } else if (err.message.includes("invalid") || err.message.includes("API Key") || err.message.includes("401") || err.message.includes("403")) {
+                errorMsg = "⚠️ API Key 无效或已失效，请重新验证。";
+                // 密钥失效时退回到登录模态
+                isApiValid = false;
+                DEEPSEEK_API_KEY = null;
+                apiModal.style.display = 'flex';
+                mainInterface.style.display = 'none';
+                return;
+            } else {
+                errorMsg = `AI 召唤失败: ${err.message.substring(0, 100)}`;
+            }
+            appendMessage(errorMsg, false);
+            typingHint.innerText = "💡 可稍后重试或检查网络";
+        } finally {
+            isWaitingResponse = false;
+            sendBtn.disabled = false;
+            if (typingHint.innerText.includes("思索") || typingHint.innerText.includes("网络")) {
+                if (!typingHint.innerText.includes("可稍后重试"))
+                    typingHint.innerText = "";
+            }
+        }
+    }
+
+    // 验证按钮逻辑 —— 仅验证合法性，绝对不存储key到任何持久化存储
+    validateBtn.addEventListener('click', async () => {
+        const rawKey = apiKeyInput.value.trim();
+        if (!rawKey) {
+            setApiError("请输入 DeepSeek API Key");
+            return;
+        }
+        if (!rawKey.startsWith("sk-")) {
+            setApiError("DeepSeek Key 通常以 'sk-' 开头，请检查");
+            return;
+        }
+        clearError();
+        validateBtn.innerText = "验证中...";
+        validateBtn.disabled = true;
+        try {
+            const isValid = await validateDeepSeekKey(rawKey);
+            if (isValid) {
+                DEEPSEEK_API_KEY = rawKey;
+                isApiValid = true;
+                apiModal.style.display = 'none';
+                mainInterface.style.display = 'block';
+                setTimeout(() => {
+                    appendMessage("🌟 API 验证通过。现在，我们可以深入聊《上元》的灯火诗意、服饰审美或者宋词意象。请问你想探讨什么？", false);
+                }, 200);
+            } else {
+                setApiError("Key 验证失败，请重新核对");
+                isApiValid = false;
+            }
+        } catch (err) {
+            setApiError(`验证失败: ${err.message}`);
+            isApiValid = false;
+        } finally {
+            validateBtn.innerText = "🔑 验证并进入 · 灵境之旅";
+            validateBtn.disabled = false;
+        }
+    });
+
+    sendBtn.addEventListener('click', handleSendMessage);
+    userQuestionInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && !isWaitingResponse && isApiValid) {
+            e.preventDefault();
+            handleSendMessage();
+        }
+    });
+
+    // 页面初始化：确保密钥绝不残留，强制弹出模态
+    window.onload = () => {
+        apiModal.style.display = 'flex';
+        mainInterface.style.display = 'none';
+        isApiValid = false;
+        DEEPSEEK_API_KEY = null;
+        if (apiKeyInput) apiKeyInput.value = '';   // 清空输入框
+        // 确保无任何localStorage/sessionStorage残留
+        try {
+            sessionStorage.removeItem('tmp_deepseek_key');
+            localStorage.removeItem('deepseek_key');
+        } catch(e) {}
+    };
+</script>
+</body>
+</html>
